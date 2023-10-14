@@ -16,11 +16,13 @@ pub struct GameGridComponent{
     y: HNum,
     current_direction: Direction,
     score: u64,
+    paused: bool,
 }
 pub enum Msg {
     GameTicked(()),
     HandleKeyboardEvent(KeyboardEvent),
     RestartGame(()),
+    HandlePause(()),
 }
 
 
@@ -47,12 +49,16 @@ impl GameGridComponent {
     fn update_direction(&mut self, dir: Direction) {
         self.current_direction = dir;
     }
+    fn update_pause(&mut self, pause: bool) {
+        self.paused = pause;
+    }
     fn handle_keydown(&mut self, event: KeyboardEvent) {
         match event.key().as_str() {
             "ArrowUp" => self.update_direction(Direction::UP),
             "ArrowDown" => self.update_direction(Direction::DOWN),
             "ArrowLeft" => self.update_direction(Direction::LEFT),
             "ArrowRight" => self.update_direction(Direction::RIGHT),
+            " " => self.update_pause(!self.paused), // spacebar
             _ => {}
         }
     }
@@ -75,6 +81,7 @@ impl GameGridComponent {
         self.y = 1;
         self.current_direction = Direction::RIGHT;
         self.score = 0;
+        self.paused = false;
     }
 }
 
@@ -95,14 +102,21 @@ impl Component for GameGridComponent {
             y: 1,
             current_direction: Direction::RIGHT,
             score: 0,
+            paused: true,
         }
     }
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::GameTicked(_) => {
-                if self.is_game_over() {return true};
-                self.handle_tick();
-                self.increment_score();
+                if self.paused {
+                    return false; // don't re-render if paused
+                }
+                if self.is_game_over() {
+                    self.update_pause(true);
+                } else {
+                    self.handle_tick();
+                    self.increment_score();
+                }
             }
             Msg::HandleKeyboardEvent(event) => {
                 self.handle_keydown(event);
@@ -110,8 +124,10 @@ impl Component for GameGridComponent {
             Msg::RestartGame(_) => {
                 self.restart();
             }
+            Msg::HandlePause(_) => {
+                self.update_pause(!self.paused);
+            }
         }
-
         true
     }
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -121,6 +137,10 @@ impl Component for GameGridComponent {
         let handle_restart = ctx.link().callback(|_| {
             Msg::RestartGame(())
         });
+        let handle_unpause = ctx.link().callback(|_| {
+            Msg::HandlePause(())
+        });
+
 
         html!(
             <div tabIndex="0" onkeydown={handle_keydown}>
@@ -131,7 +151,9 @@ impl Component for GameGridComponent {
                         <button onclick={handle_restart}>{ "Restart" }</button>
                     </div>
                 }
-            } else {html!{<></>}}}
+            } else {html!{
+                <button onclick={handle_unpause}>{ if self.paused {"Resume"} else {"Pause"} }</button>
+            }}}
             <p>{ format!("scrore: {}", self.score) }</p>
                 { for (0..GRID_HEIGHT + GRID_OFFSET).map(|row| {
                     html! {
