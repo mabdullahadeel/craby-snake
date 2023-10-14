@@ -1,17 +1,26 @@
 use std::cmp;
 use futures::StreamExt;
-use yew::{html, Component, AttrValue, Context, Html, classes};
+use yew::{html, Component, Context, Html, classes, KeyboardEvent};
 use crate::services::{start_game_tick};
-const GRID_HEIGHT: u8 = 30;
-const GRID_WIDTH: u8 = 30;
+
+type HNum = i8;
+
+const BOUNDARY_THICKNESS: HNum = 1;
+const GRID_HEIGHT: HNum = 30;
+const GRID_WIDTH: HNum = 30;
+const GRID_OFFSET: HNum = BOUNDARY_THICKNESS * 2;
 const TICK_TIME: u64 = 100;
 
 pub struct GameGridComponent{
-    x: u8,
-    y: u8,
+    x: HNum,
+    y: HNum,
+    current_direction: Direction,
+    score: u64,
 }
 pub enum Msg {
-    GameTicked(())
+    GameTicked(()),
+    HandleKeyboardEvent(KeyboardEvent),
+    RestartGame(()),
 }
 
 
@@ -23,22 +32,54 @@ enum Direction {
 }
 
 impl GameGridComponent {
-    fn handle_dir_change(&mut self, dir: Direction) {
-        match dir {
-            Direction::UP => {
-                self.y = cmp::max(self.y - 1, 0);
-            }
-            Direction::DOWN => {
-                self.y = cmp::min(self.y + 1, GRID_HEIGHT - 1);
-            }
-            Direction::LEFT => {
-                self.x = cmp::max(self.x - 1, 0);
-            }
-            Direction::RIGHT => {
-                self.x = cmp::min(self.x + 1, GRID_WIDTH - 1);
-            }
+    fn move_up(&mut self) {
+        self.y = cmp::max(self.y - 1, 0);
+    }
+    fn move_down(&mut self) {
+        self.y = cmp::min(self.y + 1, GRID_HEIGHT + GRID_OFFSET - 1);
+    }
+    fn move_left(&mut self) {
+        self.x = cmp::max(self.x - 1, 0);
+    }
+    fn move_right(&mut self) {
+        self.x = cmp::min(self.x + 1, GRID_WIDTH + GRID_OFFSET - 1);
+    }
+    fn update_direction(&mut self, dir: Direction) {
+        self.current_direction = dir;
+    }
+    fn handle_keydown(&mut self, event: KeyboardEvent) {
+        match event.key().as_str() {
+            "ArrowUp" => self.update_direction(Direction::UP),
+            "ArrowDown" => self.update_direction(Direction::DOWN),
+            "ArrowLeft" => self.update_direction(Direction::LEFT),
+            "ArrowRight" => self.update_direction(Direction::RIGHT),
+            _ => {}
         }
     }
+    fn handle_tick(&mut self) {
+        match self.current_direction {
+            Direction::UP => self.move_up(),
+            Direction::DOWN => self.move_down(),
+            Direction::LEFT => self.move_left(),
+            Direction::RIGHT => self.move_right(),
+        }
+    }
+    fn is_game_over(&self) -> bool {
+        is_boundary(self.x, self.y)
+    }
+    fn increment_score(&mut self) {
+        self.score += 1;
+    }
+    fn restart(&mut self) {
+        self.x = 1;
+        self.y = 1;
+        self.current_direction = Direction::RIGHT;
+        self.score = 0;
+    }
+}
+
+fn is_boundary(x: HNum, y: HNum) -> bool {
+    x < BOUNDARY_THICKNESS || x >= GRID_WIDTH + BOUNDARY_THICKNESS || y < BOUNDARY_THICKNESS || y >= GRID_HEIGHT + BOUNDARY_THICKNESS
 }
 
 impl Component for GameGridComponent {
@@ -50,31 +91,62 @@ impl Component for GameGridComponent {
         ctx.link().send_stream(game_tick.map(Msg::GameTicked));
 
         Self {
-            x: 0,
-            y: 0,
+            x: 1,
+            y: 1,
+            current_direction: Direction::RIGHT,
+            score: 0,
         }
     }
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::GameTicked(_) => {
-                self.handle_dir_change(Direction::RIGHT);
+                if self.is_game_over() {return true};
+                self.handle_tick();
+                self.increment_score();
+            }
+            Msg::HandleKeyboardEvent(event) => {
+                self.handle_keydown(event);
+            }
+            Msg::RestartGame(_) => {
+                self.restart();
             }
         }
 
         true
     }
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let handle_keydown = ctx.link().callback(|e: KeyboardEvent| {
+            Msg::HandleKeyboardEvent(e)
+        });
+        let handle_restart = ctx.link().callback(|_| {
+            Msg::RestartGame(())
+        });
+
         html!(
-            <div>
-                { for (0..GRID_HEIGHT).map(|row| {
+            <div tabIndex="0" onkeydown={handle_keydown}>
+            {if self.is_game_over() {
+                html! {
+                    <div>
+                        <p>{ "Game Over" }</p>
+                        <button onclick={handle_restart}>{ "Restart" }</button>
+                    </div>
+                }
+            } else {html!{<></>}}}
+            <p>{ format!("scrore: {}", self.score) }</p>
+                { for (0..GRID_HEIGHT + GRID_OFFSET).map(|row| {
                     html! {
                         <div class="row" key={row}>
-                            { for (0..GRID_WIDTH).map(|column| {
+                            { for (0..GRID_WIDTH + GRID_OFFSET).map(|column| {
                                 html! {
                                     <div key={column} class={classes!(
                                         "cell",
                                         if self.x == column && self.y == row {
                                             "cell--active"
+                                        } else {
+                                            ""
+                                        },
+                                        if is_boundary(column, row) {
+                                            "cell--boundary"
                                         } else {
                                             ""
                                         }

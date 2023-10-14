@@ -128,5 +128,5 @@ impl Component for AsyncComponent {
 }
 
 fn main() {
-    yew::Renderer::<AsyncComponent>::new().render();
+    yew::Renderer::<GameGridComponent>::new().render();
 }
