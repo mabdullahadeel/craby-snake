@@ -9,5 +9,6 @@ edition = "2021"
 chrono = "0.4.31"
 futures = "0.3.28"
 gloo-net = "0.4.0"
+rand = "0.8.5"
 # this is the development version of Yew
 yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }

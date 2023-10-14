@@ -36,3 +36,7 @@
 .cell--boundary {
   background-color: black;
 }
+
+.cell--food {
+  background-color: red;
+}
