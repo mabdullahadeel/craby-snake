@@ -1,7 +1,7 @@
 use std::cmp;
 use futures::StreamExt;
 use yew::{html, Component, Context, Html, classes, KeyboardEvent};
-use crate::services::{start_game_tick};
+use crate::services::start_game_tick;
 use rand::Rng;
 type HNum = i8;
 
@@ -21,6 +21,11 @@ fn get_random_position() -> PositionCoords {
     )
 }
 
+struct BodySegment {
+    x: HNum,
+    y: HNum,
+    direction: String,
+}
 
 struct PositionCoords {
     x: HNum,
@@ -34,9 +39,6 @@ impl PositionCoords {
             y,
         }
     }
-    fn is_equal(&self, other: &PositionCoords) -> bool {
-        self.x == other.x && self.y == other.y
-    }
     fn random() -> Self {
         get_random_position()
     }
@@ -48,8 +50,8 @@ pub struct GameGridComponent{
     current_direction: Direction,
     score: u64,
     paused: bool,
-    previous_position: PositionCoords,
     food_position: PositionCoords,
+    body_segments: Vec<BodySegment>,
 }
 pub enum Msg {
     GameTicked(()),
@@ -96,11 +98,24 @@ impl GameGridComponent {
         }
     }
     fn handle_tick(&mut self) {
+        let pos = PositionCoords::new(self.x, self.y);
         match self.current_direction {
             Direction::UP => self.move_up(),
             Direction::DOWN => self.move_down(),
             Direction::LEFT => self.move_left(),
             Direction::RIGHT => self.move_right(),
+        }
+        // update body segments
+        for i in (0..self.body_segments.len()).rev() {
+            if i == 0 {
+                self.body_segments[i].x = pos.x;
+                self.body_segments[i].y = pos.y;
+                self.body_segments[i].direction = self.get_direction_str();
+            } else {
+                self.body_segments[i].x = self.body_segments[i - 1].x;
+                self.body_segments[i].y = self.body_segments[i - 1].y;
+                self.body_segments[i].direction = self.body_segments[i - 1].direction.clone();
+            }
         }
     }
     fn is_game_over(&self) -> bool {
@@ -115,12 +130,28 @@ impl GameGridComponent {
         self.current_direction = Direction::RIGHT;
         self.score = 0;
         self.paused = false;
+        self.food_position = PositionCoords::random();
+        self.body_segments.clear();
     }
     fn is_food_coordinate(&self, x: HNum, y: HNum) -> bool {
         self.food_position.x == x && self.food_position.y == y
     }
     fn is_food_eaten(&self) -> bool {
         self.is_food_coordinate(self.x, self.y)
+    }
+    fn respawn_food(&mut self) {
+        self.food_position = PositionCoords::random();
+    }
+    fn is_body_segment(&self, x: HNum, y: HNum) -> bool {
+        self.body_segments.iter().any(|segment| segment.x == x && segment.y == y)
+    }
+    fn get_direction_str(&self) -> String {
+        match self.current_direction {
+            Direction::UP => "UP".to_string(),
+            Direction::DOWN => "DOWN".to_string(),
+            Direction::LEFT => "LEFT".to_string(),
+            Direction::RIGHT => "RIGHT".to_string(),
+        }
     }
 }
 
@@ -143,8 +174,8 @@ impl Component for GameGridComponent {
             current_direction: Direction::RIGHT,
             score: 0,
             paused: true,
-            previous_position: PositionCoords::new(spawn_position.x, spawn_position.y),
             food_position: PositionCoords::random(),
+            body_segments: vec![],
         }
     }
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -159,7 +190,12 @@ impl Component for GameGridComponent {
                     self.handle_tick();
                 }
                 if self.is_food_eaten() {
-                    self.food_position = PositionCoords::random();
+                    self.respawn_food();
+                    self.body_segments.push(BodySegment {
+                        x: self.x,
+                        y: self.y,
+                        direction: self.get_direction_str(),
+                    });
                     self.increment_score();
                 }
             }
@@ -199,7 +235,7 @@ impl Component for GameGridComponent {
             } else {html!{
                 <button onclick={handle_unpause}>{ if self.paused {"Resume"} else {"Pause"} }</button>
             }}}
-            <p>{ format!("scrore: {}", self.score) }</p>
+            <p>{ format!("score: {}", self.score) }</p>
                 { for (0..GRID_HEIGHT + GRID_OFFSET).map(|row| {
                     html! {
                         <div class="row" key={row}>
@@ -221,8 +257,13 @@ impl Component for GameGridComponent {
                                             "cell--food"
                                         } else {
                                             ""
-                                        }
-                                    )}></div>
+                                        },
+                                        if self.is_body_segment(column, row) {
+                                            "cell--body"
+                                        } else {
+                                            ""
+                                        },
+                                    )}/>
                                 }
                             })}
                         </div>

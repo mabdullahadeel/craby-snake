@@ -30,7 +30,7 @@
 }
 
 .cell--active {
-  background-color: #4caf50;
+  background-color: #c3c01b;
 }
 
 .cell--boundary {
@@ -39,4 +39,8 @@
 
 .cell--food {
   background-color: red;
+}
+
+.cell--body {
+  background-color: #29792c;
 }
