@@ -21,10 +21,28 @@ fn get_random_position() -> PositionCoords {
     )
 }
 
+enum Direction {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+}
+
+impl Direction {
+    fn cloned(&self) -> Direction {
+        match self {
+            Direction::UP => Direction::UP,
+            Direction::DOWN => Direction::DOWN,
+            Direction::LEFT => Direction::LEFT,
+            Direction::RIGHT => Direction::RIGHT,
+        }
+    }
+}
+
 struct BodySegment {
     x: HNum,
     y: HNum,
-    direction: String,
+    direction: Direction,
 }
 
 struct PositionCoords {
@@ -58,14 +76,6 @@ pub enum Msg {
     HandleKeyboardEvent(KeyboardEvent),
     RestartGame(()),
     HandlePause(()),
-}
-
-
-enum Direction {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
 }
 
 impl GameGridComponent {
@@ -110,11 +120,11 @@ impl GameGridComponent {
             if i == 0 {
                 self.body_segments[i].x = pos.x;
                 self.body_segments[i].y = pos.y;
-                self.body_segments[i].direction = self.get_direction_str();
+                self.body_segments[i].direction = self.current_direction.cloned();
             } else {
                 self.body_segments[i].x = self.body_segments[i - 1].x;
                 self.body_segments[i].y = self.body_segments[i - 1].y;
-                self.body_segments[i].direction = self.body_segments[i - 1].direction.clone();
+                self.body_segments[i].direction = self.body_segments[i - 1].direction.cloned();
             }
         }
     }
@@ -144,14 +154,6 @@ impl GameGridComponent {
     }
     fn is_body_segment(&self, x: HNum, y: HNum) -> bool {
         self.body_segments.iter().any(|segment| segment.x == x && segment.y == y)
-    }
-    fn get_direction_str(&self) -> String {
-        match self.current_direction {
-            Direction::UP => "UP".to_string(),
-            Direction::DOWN => "DOWN".to_string(),
-            Direction::LEFT => "LEFT".to_string(),
-            Direction::RIGHT => "RIGHT".to_string(),
-        }
     }
 }
 
@@ -194,7 +196,7 @@ impl Component for GameGridComponent {
                     self.body_segments.push(BodySegment {
                         x: self.x,
                         y: self.y,
-                        direction: self.get_direction_str(),
+                        direction: self.current_direction.cloned(),
                     });
                     self.increment_score();
                 }
