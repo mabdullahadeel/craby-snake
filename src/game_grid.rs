@@ -16,8 +16,8 @@ const TICK_TIME: u64 = 100;
 fn get_random_position() -> PositionCoords {
     let mut rng = rand::thread_rng();
     PositionCoords::new(
-        rng.gen_range(BOUNDARY_THICKNESS..GRID_WIDTH + BOUNDARY_THICKNESS),
-        rng.gen_range(BOUNDARY_THICKNESS..GRID_HEIGHT + BOUNDARY_THICKNESS)
+        rng.gen_range(BOUNDARY_THICKNESS..=GRID_WIDTH),
+        rng.gen_range(BOUNDARY_THICKNESS..=GRID_HEIGHT)
     )
 }
 
@@ -28,13 +28,14 @@ enum Direction {
     RIGHT,
 }
 
-impl Direction {
-    fn cloned(&self) -> Direction {
+impl Clone for Direction {
+    fn clone(&self) -> Direction {
+        use Direction as D;
         match self {
-            Direction::UP => Direction::UP,
-            Direction::DOWN => Direction::DOWN,
-            Direction::LEFT => Direction::LEFT,
-            Direction::RIGHT => Direction::RIGHT,
+            D::UP => D::UP,
+            D::DOWN => D::DOWN,
+            D::LEFT => D::LEFT,
+            D::RIGHT => D::RIGHT,
         }
     }
 }
@@ -120,11 +121,11 @@ impl GameGridComponent {
             if i == 0 {
                 self.body_segments[i].x = pos.x;
                 self.body_segments[i].y = pos.y;
-                self.body_segments[i].direction = self.current_direction.cloned();
+                self.body_segments[i].direction = self.current_direction.clone();
             } else {
                 self.body_segments[i].x = self.body_segments[i - 1].x;
                 self.body_segments[i].y = self.body_segments[i - 1].y;
-                self.body_segments[i].direction = self.body_segments[i - 1].direction.cloned();
+                self.body_segments[i].direction = self.body_segments[i - 1].direction.clone();
             }
         }
     }
@@ -196,7 +197,7 @@ impl Component for GameGridComponent {
                     self.body_segments.push(BodySegment {
                         x: self.x,
                         y: self.y,
-                        direction: self.current_direction.cloned(),
+                        direction: self.current_direction.clone(),
                     });
                     self.increment_score();
                 }
