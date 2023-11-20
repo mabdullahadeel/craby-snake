@@ -227,18 +227,8 @@ impl Component for GameGridComponent {
 
 
         html!(
-            <div tabIndex="0" onkeydown={handle_keydown}>
-            {if self.is_game_over() {
-                html! {
-                    <div>
-                        <p>{ "Game Over" }</p>
-                        <button onclick={handle_restart}>{ "Restart" }</button>
-                    </div>
-                }
-            } else {html!{
-                <button onclick={handle_unpause}>{ if self.paused {"Resume"} else {"Pause"} }</button>
-            }}}
-            <p>{ format!("score: {}", self.score) }</p>
+            <div tabIndex="0" onkeydown={handle_keydown} class={classes!("app-ctn")}>
+                <p class={classes!("score")}>{ format!("score: {}", self.score) }</p>
                 { for (0..GRID_HEIGHT + GRID_OFFSET).map(|row| {
                     html! {
                         <div class="row" key={row}>
@@ -272,6 +262,16 @@ impl Component for GameGridComponent {
                         </div>
                     }
                 })}
+                {if self.is_game_over() {
+                    html! {
+                        <div class={classes!("game-over-ctn")}>
+                            <p class={classes!("game-over")}>{ "Game Over" }</p>
+                            <button class={classes!("btn")} onclick={handle_restart}>{ "Restart" }</button>
+                        </div>
+                    }
+                } else {html!{
+                    <button onclick={handle_unpause} class={classes!("btn")}>{ if self.paused {"Resume"} else {"Pause"} }</button>
+                }}}
             </div>
         )
     }

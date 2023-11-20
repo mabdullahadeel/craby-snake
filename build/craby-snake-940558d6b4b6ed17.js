@@ -749,7 +749,7 @@ async function __wbg_init(input) {
     if (wasm !== undefined) return wasm;
 
     if (typeof input === 'undefined') {
-        input = new URL('craby-snake-f9f46709efd44299_bg.wasm', import.meta.url);
+        input = new URL('craby-snake-940558d6b4b6ed17_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
