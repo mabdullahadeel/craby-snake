@@ -7,3 +7,9 @@ Build command
 ```
 trunk build --release --dist ./build
 ```
+
+Run command
+
+```
+trunk serve
+```

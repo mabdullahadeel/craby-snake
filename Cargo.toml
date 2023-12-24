@@ -6,8 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.31"
 futures = "0.3.28"
 rand = "0.8.5"
-# this is the development version of Yew
 yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }

@@ -1,8 +1,11 @@
 use std::cmp;
 use futures::StreamExt;
 use yew::{html, Component, Context, Html, classes, KeyboardEvent};
-use crate::services::start_game_tick;
 use rand::Rng;
+use std::time::Duration;
+use futures::Stream;
+use yew::platform::time::interval;
+
 type HNum = i8;
 
 const BOUNDARY_THICKNESS: HNum = 1;
@@ -10,6 +13,10 @@ const GRID_HEIGHT: HNum = 30;
 const GRID_WIDTH: HNum = 30;
 const GRID_OFFSET: HNum = BOUNDARY_THICKNESS * 2;
 const TICK_TIME: u64 = 100;
+
+pub fn start_game_tick(ms: u64) -> impl Stream<Item = ()> {
+    interval(Duration::from_millis(ms))
+}
 
 /// Generate a random position within the grid
 /// The position will not be on the boundary
